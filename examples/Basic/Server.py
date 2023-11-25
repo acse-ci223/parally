@@ -1,4 +1,3 @@
-import time
 from parally import Server
 
 HOST = "localhost"
@@ -10,8 +9,18 @@ parameters = [
     {"a": 5, "b": 6},
 ]
 
+
 def print_result(result):
+    """
+    print_result Prints the result of the worker.
+
+    Parameters
+    ----------
+    result : any
+        The result of the worker.
+    """
     print(result)
+
 
 if __name__ == "__main__":
     server = Server(HOST, PORT)
