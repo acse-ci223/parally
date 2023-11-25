@@ -22,7 +22,20 @@ def make_hash(o):
 
 
 class Worker:
+    """
+    A simple worker class that handles the connection to a client.
+    """
     def __init__(self, conn, addr):
+        """
+        __init__ Initialises the Worker object.
+
+        Parameters
+        ----------
+        conn : socket.socket
+            Socket connection to the client.
+        addr : tuple
+            Address of the client.
+        """
         self._conn = conn
         self._addr = addr
         self._running = False
@@ -34,6 +47,9 @@ class Worker:
         self._done = False
 
     def terminate(self) -> None:
+        """
+        terminate Terminates the worker.
+        """
         self._running = False
         self._assigned = False
         self._result = None
@@ -42,38 +58,108 @@ class Worker:
         self._done = False
 
     def assign_task(self, parameters) -> None:
+        """
+        assign_task Assigns a task to the worker.
+
+        Parameters
+        ----------
+        parameters : dict
+            Parameters to be passed to the worker.
+        """
         self._assigned = True
         self._input_parameters = parameters
 
     def is_assigned(self) -> bool:
+        """
+        is_assigned Checks if the worker has been assigned a task.
+
+        Returns
+        -------
+        bool
+            True if the worker has been assigned a task, False otherwise.
+        """
         return self._assigned
 
     def unassign_task(self) -> None:
+        """
+        unassign_task Unassigns the task from the worker.
+        """
         self._assigned = False
         self._input_parameters = {}
 
     def get_parameters(self) -> dict:
+        """
+        get_parameters Returns the parameters assigned to the worker.
+
+        Returns
+        -------
+        dict
+            The parameters assigned to the worker.
+        """
         return self._input_parameters
 
     def is_running(self) -> bool:
+        """
+        is_running Checks if the worker is running.
+
+        Returns
+        -------
+        bool
+            True if the worker is running, False otherwise.
+        """
         return self._running
 
     def is_done(self) -> bool:
+        """
+        is_done Checks if the worker is done.
+
+        Returns
+        -------
+        bool
+            True if the worker is done, False otherwise.
+        """
         return self._done
 
     def get_error(self) -> str:
+        """
+        get_error Returns the error message of the worker.
+
+        Returns
+        -------
+        str
+            The error message of the worker.
+        """
         return self._error
 
     def get_result(self) -> dict:
+        """
+        get_result Returns the result of the worker.
+
+        Returns
+        -------
+        dict
+            The result of the worker.
+        """
         return self._result
 
     def run(self) -> bool:
+        """
+        run Runs the worker.
+
+        Returns
+        -------
+        bool
+            True if the worker has been run, False otherwise.
+        """
         to_send = json.dumps({'action': 'run', 'parameters': self._input_parameters})
         self._conn.send(to_send.encode())
         self._running = True
         return True
 
     def check_status(self):
+        """
+        check_status Checks the status of the worker.
+        """
         data = self._conn.recv(1024)
         if not data:
             return False
@@ -125,7 +211,10 @@ class Server:
         self._callback = None
         self._callback_error = None
 
-    def start(self):
+    def start(self) -> None:
+        """
+        start Starts the server.
+        """
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
@@ -136,23 +225,58 @@ class Server:
         self._process.start()
 
     def _accept(self) -> (socket.socket, tuple):
+        """
+        _accept Accepts a connection from a client.
+
+        Returns
+        -------
+        (socket.socket, tuple)
+            The socket connection and the address of the client.
+        """
         try:
             client, address = self._sock.accept()
             return (client, address)
         except socket.timeout:
             return (None, None)
 
-    def bind_parameters(self, parameters):
+    def bind_parameters(self, parameters) -> None:
+        """
+        bind_parameters Binds a list of parameters to the server.
+
+        Parameters
+        ----------
+        parameters : list
+            A list of parameters to be bound to the server.
+        """
         self._to_complete = len(parameters)
         self._parameters = parameters
 
-    def on_completed(self, callback):
+    def on_completed(self, callback) -> None:
+        """
+        on_completed Sets the callback function to be called when the server has completed all tasks.
+
+        Parameters
+        ----------
+        callback : function
+            The callback function to be called when the server has completed all tasks.
+        """
         self._callback = callback
 
     def on_error(self, callback):
+        """
+        on_error Sets the callback function to be called when the server has encountered an error.
+
+        Parameters
+        ----------
+        callback : function
+            The callback function to be called when the server has encountered an error.
+        """
         self._callback_error = callback
 
-    def update(self):
+    def update(self) -> None:
+        """
+        update Updates the server.
+        """
         while self.running:
             client, address = self._accept()
             print(f"Connection from {address}")
@@ -188,7 +312,15 @@ class Server:
             if len(self._completed) == self._to_complete:
                 self._callback(self.stop())
 
-    def stop(self):
+    def stop(self) -> list:
+        """
+        stop Stops the server.
+
+        Returns
+        -------
+        list
+            A list of results.
+        """
         self._sock.close()
         self._process.terminate()
         self.running = False
