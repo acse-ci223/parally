@@ -193,7 +193,7 @@ class Worker:
                 self._result = {
                     "input": self._input_parameters,
                     "result": data['result']
-                    }
+                }
                 self._done = True
                 return True
             elif data['action'] == 'error':
