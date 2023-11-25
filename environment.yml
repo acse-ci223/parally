@@ -1,0 +1,11 @@
+name: parally
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python>=3.10
+  - pip
+  - pytest
+  - sphinx
+  - sphinx_rtd_theme
+  - flake8
