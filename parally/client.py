@@ -1,6 +1,10 @@
 import socket
 
+
 class Client:
+    """
+    A simple client class that connects to a given host and port.
+    """
     def __init__(self, host, port):
         self._host = host
         self._port = port
