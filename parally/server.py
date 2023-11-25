@@ -258,7 +258,7 @@ class Worker:
         self._state.set_running(True)
         return True
 
-    def check_status(self):
+    def check_status(self) -> bool:
         """
         check_status Checks the status of the worker.
         """
@@ -275,7 +275,7 @@ class Worker:
                 }
                 self._state.set_done(True)
                 return True
-            elif data['action'] == 'error':
+            if data['action'] == 'error':
                 self._error = data['error']
                 self._state.set_done(True)
                 return False
@@ -283,6 +283,7 @@ class Worker:
             self._error = 'Invalid JSON received.'
             self._state.set_done(True)
             return False
+        return False
 
 
 class Server:
