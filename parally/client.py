@@ -1,3 +1,5 @@
+"""Client module for the parally package."""
+
 import json
 import socket
 

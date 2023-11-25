@@ -1,3 +1,5 @@
+"""Server module for the parally package."""
+
 import random
 import socket
 import json
