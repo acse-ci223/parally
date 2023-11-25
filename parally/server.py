@@ -44,6 +44,85 @@ def make_hash(o) -> int:
     return hash(freeze(o))
 
 
+class State:
+    """
+    A simple state class that handles the state of a worker.
+    """
+    def __init__(self):
+        """
+        __init__ Initialises the State object.
+        """
+        self._running = False
+        self._assigned = False
+        self._done = False
+
+    def set_running(self, running) -> None:
+        """
+        set_running Sets the running state of the worker.
+
+        Parameters
+        ----------
+        running : bool
+            The running state of the worker.
+        """
+        self._running = running
+
+    def set_assigned(self, assigned) -> None:
+        """
+        set_assigned Sets the assigned state of the worker.
+
+        Parameters
+        ----------
+        assigned : bool
+            The assigned state of the worker.
+        """
+        self._assigned = assigned
+
+    def set_done(self, done) -> None:
+        """
+        set_done Sets the done state of the worker.
+
+        Parameters
+        ----------
+        done : bool
+            The done state of the worker.
+        """
+        self._done = done
+
+    def is_running(self) -> bool:
+        """
+        is_running Checks if the worker is running.
+
+        Returns
+        -------
+        bool
+            True if the worker is running, False otherwise.
+        """
+        return self._running
+
+    def is_assigned(self) -> bool:
+        """
+        is_assigned Checks if the worker is assigned.
+
+        Returns
+        -------
+        bool
+            True if the worker is assigned, False otherwise.
+        """
+        return self._assigned
+
+    def is_done(self) -> bool:
+        """
+        is_done Checks if the worker is done.
+
+        Returns
+        -------
+        bool
+            True if the worker is done, False otherwise.
+        """
+        return self._done
+
+
 class Worker:
     """
     A simple worker class that handles the connection to a client.
@@ -59,26 +138,21 @@ class Worker:
         addr : tuple
             Address of the client.
         """
-        self._conn = conn
-        self._addr = addr
-        self._running = False
-        self._assigned = False
+        self._socket = (conn, addr)
+        self._state = State()
         self._input_parameters = {}
         self._result = None
         self._received_data = bytes()
         self._error = None
-        self._done = False
 
     def terminate(self) -> None:
         """
         terminate Terminates the worker.
         """
-        self._running = False
-        self._assigned = False
+        self._state = State()
         self._result = None
         self._received_data = bytes()
         self._error = None
-        self._done = False
 
     def assign_task(self, parameters) -> None:
         """
@@ -89,7 +163,7 @@ class Worker:
         parameters : dict
             Parameters to be passed to the worker.
         """
-        self._assigned = True
+        self._state.set_assigned(True)
         self._input_parameters = parameters
 
     def is_assigned(self) -> bool:
@@ -101,13 +175,13 @@ class Worker:
         bool
             True if the worker has been assigned a task, False otherwise.
         """
-        return self._assigned
+        return self._state.is_assigned()
 
     def unassign_task(self) -> None:
         """
         unassign_task Unassigns the task from the worker.
         """
-        self._assigned = False
+        self._state.set_assigned(False)
         self._input_parameters = {}
 
     def get_parameters(self) -> dict:
@@ -130,7 +204,7 @@ class Worker:
         bool
             True if the worker is running, False otherwise.
         """
-        return self._running
+        return self._state.is_running()
 
     def is_done(self) -> bool:
         """
@@ -141,7 +215,7 @@ class Worker:
         bool
             True if the worker is done, False otherwise.
         """
-        return self._done
+        return self._state.is_done()
 
     def get_error(self) -> str:
         """
@@ -175,15 +249,15 @@ class Worker:
             True if the worker has been run, False otherwise.
         """
         to_send = json.dumps({'action': 'run', 'parameters': self._input_parameters})
-        self._conn.send(to_send.encode())
-        self._running = True
+        self._socket[0].send(to_send.encode())
+        self._state.set_running(True)
         return True
 
     def check_status(self):
         """
         check_status Checks the status of the worker.
         """
-        data = self._conn.recv(1024)
+        data = self._socket[0].recv(1024)
         if not data:
             return False
         data += self._received_data
@@ -194,15 +268,15 @@ class Worker:
                     "input": self._input_parameters,
                     "result": data['result']
                 }
-                self._done = True
+                self._state.set_done(True)
                 return True
             elif data['action'] == 'error':
                 self._error = data['error']
-                self._done = True
+                self._state.set_done(True)
                 return False
         except json.decoder.JSONDecodeError:
             self._error = 'Invalid JSON received.'
-            self._done = True
+            self._state.set_done(True)
             return False
 
 
