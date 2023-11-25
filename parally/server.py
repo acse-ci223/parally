@@ -1,5 +1,7 @@
 import socket
 
+__all__ = ['Server']
+
 
 class Server:
     """
