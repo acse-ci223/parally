@@ -6,7 +6,20 @@ from multiprocessing import Process
 __all__ = ['Server']
 
 
-def freeze(o):
+def freeze(o) -> (dict, list, tuple, set):
+    """
+    freezes a nested dictionary, list, tuple or set
+
+    Parameters
+    ----------
+    o : dict, list, tuple, set
+        The object to be frozen
+
+    Returns
+    -------
+    dict, list, tuple, set
+        The frozen object
+    """
     if isinstance(o, dict):
         return frozenset({ k: freeze(v) for k, v in o.items()}.items())
     if isinstance(o, (set, tuple, list)):
@@ -14,9 +27,19 @@ def freeze(o):
     return o
 
 
-def make_hash(o):
+def make_hash(o) -> int:
     """
     makes a hash out of anything that contains only list,dict and hashable types including string and numeric types
+
+    Parameters
+    ----------
+    o : dict, list, tuple, set
+        The object to be hashed
+
+    Returns
+    -------
+    int
+        The hash of the object
     """
     return hash(freeze(o))
 
