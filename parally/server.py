@@ -2,11 +2,12 @@ import random
 import socket
 import json
 from multiprocessing import Process
+from typing import Tuple
 
 __all__ = ['Server']
 
 
-def freeze(o) -> (dict, list, tuple, set):
+def freeze(o) -> list:
     """
     freezes a nested dictionary, list, tuple or set
 
@@ -21,15 +22,16 @@ def freeze(o) -> (dict, list, tuple, set):
         The frozen object
     """
     if isinstance(o, dict):
-        return frozenset({k: freeze(v) for k, v in o.items()}.items())
+        return list(frozenset({k: freeze(v) for k, v in o.items()}.items()))
     if isinstance(o, (set, tuple, list)):
-        return tuple([freeze(v) for v in o])
+        return list(freeze(v) for v in o)
     return o
 
 
 def make_hash(o) -> int:
     """
-    makes a hash out of anything that contains only list,dict and hashable types including string and numeric types
+    makes a hash out of anything that contains only
+    list,dict and hashable types including string and numeric types
 
     Parameters
     ----------
@@ -248,7 +250,10 @@ class Worker:
         bool
             True if the worker has been run, False otherwise.
         """
-        to_send = json.dumps({'action': 'run', 'parameters': self._input_parameters})
+        to_send = json.dumps({
+            'action': 'run',
+            'parameters': self._input_parameters
+            })
         self._socket[0].send(to_send.encode())
         self._state.set_running(True)
         return True
@@ -321,7 +326,7 @@ class Server:
         self._process = Process(target=self.update)
         self._process.start()
 
-    def _accept(self) -> (socket.socket, tuple):
+    def _accept(self) -> Tuple[socket.socket, tuple]:
         """
         _accept Accepts a connection from a client.
 
@@ -334,7 +339,7 @@ class Server:
             client, address = self._sock.accept()
             return (client, address)
         except socket.timeout:
-            return (None, None)
+            return (socket.socket(socket.AF_INET, socket.SOCK_STREAM), ('', 0))
 
     def bind_parameters(self, parameters) -> None:
         """
@@ -350,23 +355,27 @@ class Server:
 
     def on_completed(self, callback) -> None:
         """
-        on_completed Sets the callback function to be called when the server has completed all tasks.
+        on_completed Sets the callback function to be called
+        when the server has completed all tasks.
 
         Parameters
         ----------
         callback : function
-            The callback function to be called when the server has completed all tasks.
+            The callback function to be called when the
+            server has completed all tasks.
         """
         self._callback = callback
 
     def on_error(self, callback):
         """
-        on_error Sets the callback function to be called when the server has encountered an error.
+        on_error Sets the callback function to be called
+        when the server has encountered an error.
 
         Parameters
         ----------
         callback : function
-            The callback function to be called when the server has encountered an error.
+            The callback function to be called
+            when the server has encountered an error.
         """
         self._callback_error = callback
 
@@ -381,8 +390,7 @@ class Server:
             if client is not None and address not in self._workers.keys():
                 self._workers[address] = Worker(client, address)
 
-            for key, worker in self._workers.items():
-
+            for key, _ in self._workers.items():
                 if not self._workers[key].is_assigned():
                     input_p = random.choice(self._parameters)
                     self._workers[key].assign_task(input_p)
@@ -390,9 +398,11 @@ class Server:
                         "status": "assigned",
                         "parameters": input_p
                     }
-                    print(f"Assigned parameters: {self._workers[key].get_parameters()} to {key}")
+                    print("Assigned parameters: {} to {}".format(
+                        self._workers[key].get_parameters(), key))
 
-                elif self._workers[key].is_assigned() and not self._workers[key].is_running():
+                elif (self._workers[key].is_assigned() and
+                      not self._workers[key].is_running()):
                     self._workers[key].run()
 
                 if self._workers[key].is_running():

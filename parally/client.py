@@ -53,12 +53,13 @@ class Client:
             self._socket.sendall(json.dumps({'action': 'received'}).encode())
             if data['action'] == 'run':
                 self._input_parameters = data['data']
-                print(f"Running function with parameters {self._input_parameters}")
+                print("Running function with parameters {}".format(
+                    self._input_parameters))
                 try:
                     result = self.function(self._input_parameters)
                     to_send = json.dumps({'action': 'result', 'data': result})
                     self._socket.sendall(to_send.encode())
-                except Exception as e:
+                except (ValueError, TypeError) as e:
                     to_send = json.dumps({'action': 'error', 'error': str(e)})
                     self._socket.sendall(to_send.encode())
             elif data['action'] == 'done':
