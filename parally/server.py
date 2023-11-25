@@ -255,7 +255,7 @@ class Worker:
         to_send = json.dumps({
             'action': 'run',
             'parameters': self._input_parameters
-            })
+        })
         self._socket[0].send(to_send.encode())
         self._state.set_running(True)
         return True
@@ -404,8 +404,8 @@ class Server:
                     print("Assigned parameters: {} to {}".format(
                         self._workers[key].get_parameters(), key))
 
-                elif (self._workers[key].is_assigned() and
-                      not self._workers[key].is_running()):
+                elif (self._workers[key].is_assigned() and not
+                      self._workers[key].is_running()):
                     self._workers[key].run()
 
                 if self._workers[key].is_running():
