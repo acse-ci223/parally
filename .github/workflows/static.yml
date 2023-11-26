@@ -23,7 +23,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         python -m sphinx doc_conf docs
-        git config --global --add safe.directory /github/workspace/docs
 
     - name: Init new repo in dist folder and commit generated files
       run: |
