@@ -23,6 +23,6 @@ def print_result(result):
 if __name__ == "__main__":
     server = Server(HOST, PORT)
     server.bind_parameters(parameters)
-    server.start()
     server.on_completed(print_result)
     server.on_error(print_result)
+    server.start()
