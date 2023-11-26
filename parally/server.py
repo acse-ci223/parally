@@ -324,14 +324,23 @@ class Server:
         """
         start Starts the server.
         """
-        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        self._sock.bind((self.host, self.port))
-        self._sock.listen()
-        self.running = True
-        self._process = Process(target=self._update)
-        self._process.start()
+        try:
+            if self._to_complete == 0:
+                raise ValueError("No parameters to bind.")
+            if self._callback is None:
+                raise ValueError("No callback function initialized.")
+            if self._callback_error is None:
+                raise ValueError("No error function initialized.")
+            self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            self._sock.bind((self.host, self.port))
+            self._sock.listen()
+            self.running = True
+            self._process = Process(target=self._update)
+            self._process.start()
+        except ValueError as e:
+            print(e)
 
     def _accept(self) -> Tuple[socket.socket, tuple]:
         """
