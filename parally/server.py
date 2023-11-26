@@ -12,47 +12,14 @@ just_fix_windows_console()
 __all__ = ['Server']
 
 
-def freeze(o) -> list:
-    """
-    freezes a nested dictionary, list, tuple or set
-
-    Parameters
-    ----------
-    o : dict, list, tuple, set
-        The object to be frozen
-
-    Returns
-    -------
-    dict, list, tuple, set
-        The frozen object
-    """
-    if isinstance(o, dict):
-        return list(frozenset({k: freeze(v) for k, v in o.items()}.items()))
-    if isinstance(o, (set, tuple, list)):
-        return list(freeze(v) for v in o)
-    return o
-
-
-def make_hash(o) -> int:
-    """
-    makes a hash out of anything that contains only
-    list,dict and hashable types including string and numeric types
-
-    Parameters
-    ----------
-    o : dict, list, tuple, set
-        The object to be hashed
-
-    Returns
-    -------
-    int
-        The hash of the object
-    """
-    return hash(freeze(o))
-
-
 class Logs:
+    """
+    A simple logs class that handles the logs of the server.
+    """
     def __init__(self):
+        """
+        __init__ Initialises the Logs object.
+        """
         self._logs = []
         self.colors = {
             "info": Fore.GREEN,
@@ -64,7 +31,17 @@ class Logs:
             "reset": Style.RESET_ALL
         }
 
-    def info(self, msg, verbose=False):
+    def info(self, msg, verbose=False) -> list:
+        """
+        info Logs an info message.
+
+        Parameters
+        ----------
+        msg : str
+            The message to be logged.
+        verbose : bool
+            Whether to print the message to the console or not.
+        """
         if verbose:
             print("{}{}: {}info-> {}{}".format(
                 self.colors['timestamp'],
@@ -77,8 +54,19 @@ class Logs:
             "type": "info",
             "message": msg
         })
+        return self.get_logs()
 
-    def error(self, msg, verbose=False):
+    def error(self, msg, verbose=False) -> list:
+        """
+        error Logs an error message.
+
+        Parameters
+        ----------
+        msg : str
+            The message to be logged.
+        verbose : bool
+            Whether to print the message to the console or not.
+        """
         if verbose:
             print("{}{}: {}error-> {}{}".format(
                 self.colors['timestamp'],
@@ -91,8 +79,19 @@ class Logs:
             "type": "error",
             "message": msg
         })
+        return self.get_logs()
 
-    def warning(self, msg, verbose=False):
+    def warning(self, msg, verbose=False) -> list:
+        """
+        warning Logs a warning message.
+
+        Parameters
+        ----------
+        msg : str
+            The message to be logged.
+        verbose : bool
+            Whether to print the message to the console or not.
+        """
         if verbose:
             print("{}{}: {}warning-> {}{}".format(
                 self.colors['timestamp'],
@@ -105,8 +104,19 @@ class Logs:
             "type": "warning",
             "message": msg
         })
+        return self.get_logs()
 
-    def debug(self, msg, verbose=False):
+    def debug(self, msg, verbose=False) -> list:
+        """
+        debug Logs a debug message.
+
+        Parameters
+        ----------
+        msg : str
+            The message to be logged.
+        verbose : bool
+            Whether to print the message to the console or not.
+        """
         if verbose:
             print("{}{}: {}debug-> {}{}".format(
                 self.colors['timestamp'],
@@ -119,8 +129,19 @@ class Logs:
             "type": "debug",
             "message": msg
         })
+        return self.get_logs()
 
-    def output(self, msg, verbose=False):
+    def output(self, msg, verbose=False) -> list:
+        """
+        output Logs an output message.
+
+        Parameters
+        ----------
+        msg : str
+            The message to be logged.
+        verbose : bool
+            Whether to print the message to the console or not.
+        """
         if verbose:
             print("{}{}: {}output-> {}{}".format(
                 self.colors['timestamp'],
@@ -133,11 +154,23 @@ class Logs:
             "type": "output",
             "message": msg
         })
+        return self.get_logs()
 
-    def get_logs(self):
+    def get_logs(self) -> list:
+        """
+        get_logs Returns the logs.
+
+        Returns
+        -------
+        list
+            The logs.
+        """
         return self._logs
 
-    def clear_logs(self):
+    def clear_logs(self) -> None:
+        """
+        clear_logs Clears the logs.
+        """
         self._logs = []
 
 
