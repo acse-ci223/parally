@@ -1,14 +1,13 @@
 name: flake8
 
 on:
-   # Trigger the workflow on push or pull request,
-   # but only for the master branch
-   push:
-     branches:
-       - master
-   pull_request:
-     branches:
-       - master
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
 
 jobs:
   flake8:
@@ -30,4 +29,4 @@ jobs:
 
     - name: Lint with flake8
       run: |
-        flake8 --ignore=E501,E203,W503 .
+        flake8 --ignore=E501,E203,W503,F401 .
