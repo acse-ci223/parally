@@ -10,7 +10,7 @@ A python package to distribute CPU-intensive tasks by sending workload to other 
 
 ## Development Installation
 
-To install the package, run the following command in the terminal:
+To install the package, make sure conda is installed and then run the following commands in the terminal:
 
 ```bash
 # Clone the repository
@@ -19,7 +19,7 @@ git clone https://github.com/acse-ci223/parally.git
 # Change directory
 cd parally
 
-# Create the 'mpm-assignment-2' environment
+# Create the 'parally' environment
 conda env create -f environment.yml
 
 # Activate the environment
