@@ -1,10 +1,13 @@
 """Server module for the parally package."""
 
+from datetime import datetime
 import random
 import socket
 import json
 from multiprocessing import Process
 from typing import Tuple
+from colorama import Fore, Style, just_fix_windows_console
+just_fix_windows_console()
 
 __all__ = ['Server']
 
@@ -46,6 +49,96 @@ def make_hash(o) -> int:
         The hash of the object
     """
     return hash(freeze(o))
+
+
+class Logs:
+    def __init__(self):
+        self._logs = []
+        self.colors = {
+            "info": Fore.GREEN,
+            "error": Fore.RED,
+            "warning": Fore.YELLOW,
+            "debug": Fore.MAGENTA,
+            "timestamp": Fore.WHITE,
+            "output": Fore.CYAN,
+            "reset": Style.RESET_ALL
+        }
+
+    def info(self, msg, verbose=False):
+        if verbose:
+            print("{}{}: {}info-> {}{}".format(
+                self.colors['timestamp'],
+                datetime.now().strftime("%H:%M:%S"),
+                self.colors['info'],
+                self.colors['reset'],
+                msg))
+        self._logs.append({
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+            "type": "info",
+            "message": msg
+        })
+
+    def error(self, msg, verbose=False):
+        if verbose:
+            print("{}{}: {}error-> {}{}".format(
+                self.colors['timestamp'],
+                datetime.now().strftime("%H:%M:%S"),
+                self.colors['error'],
+                self.colors['reset'],
+                msg))
+        self._logs.append({
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+            "type": "error",
+            "message": msg
+        })
+
+    def warning(self, msg, verbose=False):
+        if verbose:
+            print("{}{}: {}warning-> {}{}".format(
+                self.colors['timestamp'],
+                datetime.now().strftime("%H:%M:%S"),
+                self.colors['warning'],
+                self.colors['reset'],
+                msg))
+        self._logs.append({
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+            "type": "warning",
+            "message": msg
+        })
+
+    def debug(self, msg, verbose=False):
+        if verbose:
+            print("{}{}: {}debug-> {}{}".format(
+                self.colors['timestamp'],
+                datetime.now().strftime("%H:%M:%S"),
+                self.colors['debug'],
+                self.colors['reset'],
+                msg))
+        self._logs.append({
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+            "type": "debug",
+            "message": msg
+        })
+
+    def output(self, msg, verbose=False):
+        if verbose:
+            print("{}{}: {}output-> {}{}".format(
+                self.colors['timestamp'],
+                datetime.now().strftime("%H:%M:%S"),
+                self.colors['debug'],
+                self.colors['output'],
+                msg))
+        self._logs.append({
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+            "type": "output",
+            "message": msg
+        })
+
+    def get_logs(self):
+        return self._logs
+
+    def clear_logs(self):
+        self._logs = []
 
 
 class State:
@@ -271,7 +364,6 @@ class Worker:
         data += self._received_data
         try:
             data = json.loads(data.decode())
-            print(data)
             if data['action'] == 'result':
                 self._result = {
                     "input": self._input_parameters,
@@ -296,7 +388,7 @@ class Server:
     """
     A simple server class that listens on a given host and port.
     """
-    def __init__(self, host, port):
+    def __init__(self, host, port, verbose=False):
         """
         __init__ Initialises the Server object.
 
@@ -319,6 +411,8 @@ class Server:
         self._to_complete = 0
         self._callback = None
         self._callback_error = None
+        self._verbose = verbose
+        self._logs = Logs()
 
     def start(self) -> None:
         """
@@ -326,21 +420,41 @@ class Server:
         """
         try:
             if self._to_complete == 0:
-                raise ValueError("No parameters to bind.")
+                raise ValueError(
+                    "No parameters to bind. Make sure you run \
+                        Server.bind_parameters() first.")
             if self._callback is None:
-                raise ValueError("No callback function initialized.")
+                raise ValueError(
+                    "No callback function initialized. Make sure you run \
+                        Server.on_completed(my_callback_function) first.")
             if self._callback_error is None:
-                raise ValueError("No error function initialized.")
+                raise ValueError(
+                    "No error function initialized. Make sure you run \
+                        Server.on_error(my_error_function) first.")
+            if self.running:
+                raise ValueError("Server is already running.")
+            if self.port < 1024 or self.port > 65535:
+                raise ValueError("Port must be between 1024 and 65535.")
+            if self.host == '':
+                self.host = 'localhost'
+
+            self._logs.info("Starting server on {}:{}".format(
+                self.host, self.port), verbose=self._verbose)
+
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
             self._sock.bind((self.host, self.port))
             self._sock.listen()
+
+            self._logs.info("Server started.", verbose=self._verbose)
+
             self.running = True
             self._process = Process(target=self._update)
             self._process.start()
+            self._logs.info("Server process started.", verbose=self._verbose)
         except ValueError as e:
-            print(e)
+            self._logs.error(e, verbose=self._verbose)
 
     def _accept(self) -> Tuple[socket.socket, tuple]:
         """
@@ -366,8 +480,15 @@ class Server:
         parameters : list
             A list of parameters to be bound to the server.
         """
-        self._to_complete = len(parameters)
-        self._parameters = parameters
+        try:
+            if not isinstance(parameters, list):
+                raise TypeError("Parameters must be a list.")
+            self._to_complete = len(parameters)
+            self._parameters = parameters
+
+            self._logs.info("Parameters bound.", verbose=self._verbose)
+        except TypeError as e:
+            self._logs.error(e, verbose=self._verbose)
 
     def on_completed(self, callback) -> None:
         """
@@ -380,7 +501,14 @@ class Server:
             The callback function to be called when the
             server has completed all tasks.
         """
-        self._callback = callback
+        try:
+            if not callable(callback):
+                raise TypeError("Callback must be a function.")
+            self._callback = callback
+
+            self._logs.info("Callback function set.", verbose=self._verbose)
+        except TypeError as e:
+            self._logs.error(e, verbose=self._verbose)
 
     def on_error(self, callback):
         """
@@ -393,15 +521,25 @@ class Server:
             The callback function to be called
             when the server has encountered an error.
         """
-        self._callback_error = callback
+        try:
+            if not callable(callback):
+                raise TypeError("Callback must be a function.")
+            self._callback_error = callback
+
+            self._logs.info("Error function set.", verbose=self._verbose)
+        except TypeError as e:
+            self._logs.error(e, verbose=self._verbose)
 
     def _update(self) -> None:
         """
         update Updates the server.
         """
-        print("Waiting for connection...")
+        self._logs.info("Waiting for connection...", verbose=self._verbose)
+
         client, address = self._accept()
-        print(f"Connection from {address}")
+
+        self._logs.info("Connection from {}".format(address),
+                        verbose=self._verbose)
         while self.running:
             if client is not None and address not in self._workers.keys():
                 self._workers[address] = Worker(client, address)
@@ -415,8 +553,10 @@ class Server:
                         "parameters": input_p
                     }
                     self._workers[key].run()
-                    print("Assigned parameters: {} to {}".format(
-                        self._workers[key].get_parameters(), key))
+
+                    self._logs.info("Assigned parameters: {} to {}".format(
+                        self._workers[key].get_parameters(), key),
+                        verbose=self._verbose)
 
                 elif (self._workers[key].is_assigned() and not
                       self._workers[key].is_running()):
@@ -431,23 +571,33 @@ class Server:
                             self._callback_error(
                                 self._workers[key].get_error())
                         else:
-                            print("No error function initialized. Error:",
-                                  self._workers[key].get_error())
+                            self._logs.error(
+                                self._workers[key].get_error(),
+                                verbose=self._verbose)
+                            continue
                     else:
                         self._completed.append(self._workers[key].get_result())
-                        print("Completed: {}".format(
-                            self._workers[key].get_result()))
+
+                        self._logs.info(
+                            "Completed parameters: {} from {}".format(
+                                self._workers[key].get_parameters(), key),
+                            verbose=self._verbose)
+
+                        self._logs.output(self._workers[key].get_result(),
+                                          verbose=self._verbose)
+
                         self._parameters.remove(
                             self._workers[key].get_parameters())
 
                     self._workers[key].terminate()
 
             if len(self._completed) == self._to_complete:
-                print("All tasks completed.")
-                print(self._callback)
                 if self._callback is not None:
-                    print("Calling callback function...")
+                    self._logs.info("All tasks completed.",
+                                    verbose=self._verbose)
+                    self._logs.output(self._completed, verbose=self._verbose)
                     self._callback(self._completed)
+                self._logs.info("Stopping server...", verbose=self._verbose)
                 self.stop()
 
     def stop(self) -> list:
@@ -459,7 +609,11 @@ class Server:
         list
             A list of results.
         """
-        self.running = False
-        # self._process.join()
-        # self._sock.close()
-        return self._completed
+        try:
+            if not self.running:
+                raise ValueError("Server is not running.")
+            self.running = False
+            return self._completed
+        except ValueError as e:
+            self._logs.error(e, verbose=self._verbose)
+        return []

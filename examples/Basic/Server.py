@@ -5,7 +5,7 @@ HOST = "localhost"
 PORT = 65432
 
 parameters = [{"a": random.randint(0, 10),
-               "b": random.randint(0, 10)} for i in range(3)]
+               "b": random.randint(0, 10)} for i in range(5)]
 
 
 def print_result(result):
@@ -21,7 +21,7 @@ def print_result(result):
 
 
 if __name__ == "__main__":
-    server = Server(HOST, PORT)
+    server = Server(HOST, PORT, verbose=True)
     server.bind_parameters(parameters)
     server.on_completed(print_result)
     server.on_error(print_result)
