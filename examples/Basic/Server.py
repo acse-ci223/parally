@@ -21,7 +21,7 @@ def print_result(result):
 
 
 if __name__ == "__main__":
-    server = Server(HOST, PORT)
+    server = Server(HOST, PORT, verbose=True)
     server.bind_parameters(parameters)
     server.on_completed(print_result)
     server.on_error(print_result)
