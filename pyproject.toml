@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "parally"
-version = "1.0.0"
+version = "1.1.0"
 authors = [
   { name="Chris Ioannidis", email="chris.ioannidis23@imperial.ac.uk" },
 ]
@@ -19,4 +19,5 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/acse-ci223/parally"
+Docs = "https://acse-ci223.github.io/parally/"
 Issues = "https://github.com/acse-ci223/parally/issues"
