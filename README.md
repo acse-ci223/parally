@@ -34,5 +34,5 @@ pip install -e .
 To use the package, run the following command in the terminal:
 
 ```bash
-pip install -e .
+pip install parally
 ```
