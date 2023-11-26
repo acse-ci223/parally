@@ -42,7 +42,7 @@ jobs:
       - name: Install dependencies
         run: python3 -m pip install -r ./requirements.txt
 
-      - run: mkdocs build
+      - run: python -m sphinx doc_conf docs
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
