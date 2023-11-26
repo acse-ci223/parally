@@ -489,6 +489,28 @@ class Server:
         except ValueError as e:
             self._logs.error(e, verbose=self._verbose)
 
+    def set_verbose(self, verbose) -> None:
+        """
+        set_verbose Sets the verbose state of the server.
+
+        Parameters
+        ----------
+        verbose : bool
+            The verbose state of the server.
+        """
+        self._verbose = verbose
+
+    def get_logs(self) -> list:
+        """
+        get_logs Returns the logs of the server.
+
+        Returns
+        -------
+        list
+            The logs of the server.
+        """
+        return self._logs.get_logs()
+
     def _accept(self) -> Tuple[socket.socket, tuple]:
         """
         _accept Accepts a connection from a client.
