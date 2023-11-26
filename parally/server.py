@@ -143,12 +143,13 @@ class Logs:
             Whether to print the message to the console or not.
         """
         if verbose:
-            print("{}{}: {}output-> {}{}".format(
+            print("{}{}: {}output-> {}{}{}".format(
                 self.colors['timestamp'],
                 datetime.now().strftime("%H:%M:%S"),
                 self.colors['debug'],
                 self.colors['output'],
-                msg))
+                json.dumps(msg, indent=2),
+                self.colors['reset']))
         self._logs.append({
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "type": "output",

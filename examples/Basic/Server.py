@@ -25,4 +25,5 @@ if __name__ == "__main__":
     server.bind_parameters(parameters)
     server.on_completed(print_result)
     server.on_error(print_result)
+    server.set_verbose(True)
     server.start()
