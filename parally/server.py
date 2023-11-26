@@ -330,7 +330,7 @@ class Server:
         self._sock.bind((self.host, self.port))
         self._sock.listen()
         self.running = True
-        self._process = Process(target=self.update)
+        self._process = Process(target=self._update)
         self._process.start()
 
     def _accept(self) -> Tuple[socket.socket, tuple]:
@@ -386,7 +386,7 @@ class Server:
         """
         self._callback_error = callback
 
-    def update(self) -> None:
+    def _update(self) -> None:
         """
         update Updates the server.
         """

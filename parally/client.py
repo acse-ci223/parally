@@ -28,7 +28,7 @@ class Client:
         self._input_parameters = {}
         self.function = None
 
-    def input_function(self, function) -> None:
+    def run_function(self, function) -> None:
         """
         input_function Sets the function to run on the server.
 
