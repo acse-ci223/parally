@@ -594,7 +594,7 @@ class Server:
             if len(self._completed) == self._to_complete:
                 if self._callback is not None:
                     self._logs.info("All tasks completed.",
-                                      verbose=self._verbose)
+                                    verbose=self._verbose)
                     self._logs.output(self._completed, verbose=self._verbose)
                     self._callback(self._completed)
                 self._logs.info("Stopping server...", verbose=self._verbose)
