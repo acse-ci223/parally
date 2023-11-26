@@ -4,22 +4,22 @@ HOST = "localhost"
 PORT = 65432
 
 
-def my_function(a, b):
+def my_function(params):
     """
     my_function A simple function that adds two numbers.
 
     Parameters
     ----------
-    a : int
-        The first number.
-    b : int
-        The second number.
+    params : dict
+        The parameters to use for the function.
 
     Returns
     -------
     int
         The sum of the two numbers.
     """
+    a = params['a']
+    b = params['b']
     return a + b
 
 

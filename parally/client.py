@@ -52,9 +52,9 @@ class Client:
                 continue
             data = json.loads(data.decode())
             print(f"Received data: {data}")
-            self._socket.sendall(json.dumps({'action': 'received'}).encode())
+            # self._socket.sendall(json.dumps({'action': 'received'}).encode())
             if data['action'] == 'run':
-                self._input_parameters = data['data']
+                self._input_parameters = data['parameters']
                 print("Running function with parameters {}".format(
                     self._input_parameters))
                 try:

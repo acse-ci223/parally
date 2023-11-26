@@ -1,13 +1,11 @@
+import random
 from parally import Server
 
 HOST = "localhost"
 PORT = 65432
 
-parameters = [
-    {"a": 1, "b": 2},
-    {"a": 3, "b": 4},
-    {"a": 5, "b": 6},
-]
+parameters = [{"a": random.randint(0, 10),
+               "b": random.randint(0, 10)} for i in range(3)]
 
 
 def print_result(result):

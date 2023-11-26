@@ -154,6 +154,7 @@ class Worker:
         terminate Terminates the worker.
         """
         self._state = State()
+        self._input_parameters = {}
         self._result = None
         self._received_data = bytes()
         self._error = None
@@ -270,16 +271,19 @@ class Worker:
         data += self._received_data
         try:
             data = json.loads(data.decode())
+            print(data)
             if data['action'] == 'result':
                 self._result = {
                     "input": self._input_parameters,
-                    "result": data['result']
+                    "result": data['data']
                 }
                 self._state.set_done(True)
                 return True
             if data['action'] == 'error':
                 self._error = data['error']
                 self._state.set_done(True)
+                return False
+            if data['action'] == 'received':
                 return False
         except json.decoder.JSONDecodeError:
             self._error = 'Invalid JSON received.'
@@ -386,10 +390,10 @@ class Server:
         """
         update Updates the server.
         """
+        print("Waiting for connection...")
+        client, address = self._accept()
+        print(f"Connection from {address}")
         while self.running:
-            client, address = self._accept()
-            print(f"Connection from {address}")
-
             if client is not None and address not in self._workers.keys():
                 self._workers[address] = Worker(client, address)
 
@@ -401,6 +405,7 @@ class Server:
                         "status": "assigned",
                         "parameters": input_p
                     }
+                    self._workers[key].run()
                     print("Assigned parameters: {} to {}".format(
                         self._workers[key].get_parameters(), key))
 
@@ -413,14 +418,28 @@ class Server:
 
                 if self._workers[key].is_done():
                     if self._workers[key].get_error() is not None:
-                        self._callback_error(self._workers[key].get_error())
+                        if self._callback_error is not None:
+                            self._callback_error(
+                                self._workers[key].get_error())
+                        else:
+                            print("No error function initialized. Error:",
+                                  self._workers[key].get_error())
                     else:
                         self._completed.append(self._workers[key].get_result())
-                        self._workers[key].terminate()
-                        self._parameters.pop(0)
+                        print("Completed: {}".format(
+                            self._workers[key].get_result()))
+                        self._parameters.remove(
+                            self._workers[key].get_parameters())
+
+                    self._workers[key].terminate()
 
             if len(self._completed) == self._to_complete:
-                self._callback(self.stop())
+                print("All tasks completed.")
+                print(self._callback)
+                if self._callback is not None:
+                    print("Calling callback function...")
+                    self._callback(self._completed)
+                self.stop()
 
     def stop(self) -> list:
         """
@@ -431,7 +450,7 @@ class Server:
         list
             A list of results.
         """
-        self._sock.close()
-        self._process.terminate()
         self.running = False
+        # self._process.join()
+        # self._sock.close()
         return self._completed
