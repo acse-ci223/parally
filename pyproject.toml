@@ -19,4 +19,5 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/acse-ci223/parally"
+Docs = "https://acse-ci223.github.io/parally/"
 Issues = "https://github.com/acse-ci223/parally/issues"

@@ -7,6 +7,9 @@ A python package to distribute CPU-intensive tasks by sending workload to other 
 
 [![pytest-unit-tests](https://github.com/acse-ci223/parally/actions/workflows/pytest-unit-tests.yml/badge.svg)](https://github.com/acse-ci223/parally/actions/workflows/pytest-unit-tests.yml)
 
+## Documentation
+
+The documentation for this package can be found [here](https://acse-ci223.github.io/parally/).
 
 ## Development Installation
 
