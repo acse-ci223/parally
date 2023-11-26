@@ -556,7 +556,7 @@ class Server:
 
                     self._logs.info("Assigned parameters: {} to {}".format(
                         self._workers[key].get_parameters(), key),
-                                    verbose=self._verbose)
+                        verbose=self._verbose)
 
                 elif (self._workers[key].is_assigned() and not
                       self._workers[key].is_running()):
