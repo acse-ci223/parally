@@ -401,7 +401,7 @@ class Worker:
             if data['action'] == 'result':
                 self._result = {
                     "input": self._input_parameters,
-                    "result": data['data']
+                    "output": data['data']
                 }
                 self._state.set_done(True)
                 return True
@@ -458,19 +458,25 @@ class Server:
                     "No parameters to bind. Make sure you run \
                         Server.bind_parameters() first.")
             if self._callback is None:
+                self.on_completed(self._default_callback)
                 raise ValueError(
-                    "No callback function initialized. Make sure you run \
-                        Server.on_completed(my_callback_function) first.")
+                    "No callback function initialized. Default callback used.")
             if self._callback_error is None:
+                self.on_error(self._default_callback)
                 raise ValueError(
-                    "No error function initialized. Make sure you run \
-                        Server.on_error(my_error_function) first.")
+                    "No error function initialized. Default callback used.")
             if self.running:
                 raise ValueError("Server is already running.")
             if self.port < 1024 or self.port > 65535:
-                raise ValueError("Port must be between 1024 and 65535.")
-            if self.host == '':
+                self.port = 5000
+                raise ValueError("Port must be between 1024 and 65535.\
+                                 Default used: 5000.")
+
+            socks = ['', 0, None]
+            if self.host in socks:
                 self.host = 'localhost'
+                raise ValueError("Host must be a valid address.\
+                                    Default used: localhost.")
 
             self._logs.info("Starting server on {}:{}".format(
                 self.host, self.port), verbose=self._verbose)
@@ -478,7 +484,11 @@ class Server:
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            self._sock.bind((self.host, self.port))
+            try:
+                self._sock.bind((self.host, self.port))
+            except Exception as e:
+                raise ValueError("Cannot bind to {}:{}. {}".format(
+                    self.host, self.port, e))
             self._sock.listen()
 
             self._logs.info("Server started.", verbose=self._verbose)
@@ -673,3 +683,14 @@ class Server:
         except ValueError as e:
             self._logs.error(e, verbose=self._verbose)
         return []
+
+    def _default_callback(self, results) -> None:
+        """
+        default_callback A default callback function.
+
+        Parameters
+        ----------
+        results : list
+            A list of results.
+        """
+        print(results)
