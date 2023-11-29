@@ -5,7 +5,7 @@ HOST = "localhost"
 PORT = 65432
 
 parameters = [{"a": random.randint(0, 10),
-               "b": random.randint(0, 10)} for i in range(5)]
+               "b": random.randint(0, 10)} for i in range(10)]
 
 
 def print_result(result):
