@@ -4,7 +4,7 @@ from datetime import datetime
 import random
 import socket
 import json
-from multiprocessing import Process
+from threading import Thread
 from typing import Tuple
 from colorama import Fore, Style, just_fix_windows_console
 just_fix_windows_console()
@@ -392,29 +392,32 @@ class Worker:
         """
         check_status Checks the status of the worker.
         """
-        data = self._socket[0].recv(1024)
-        if not data:
-            return False
-        data += self._received_data
         try:
-            data = json.loads(data.decode())
-            if data['action'] == 'result':
-                self._result = {
-                    "input": self._input_parameters,
-                    "output": data['data']
-                }
-                self._state.set_done(True)
-                return True
-            if data['action'] == 'error':
-                self._error = data['error']
+            data = self._socket[0].recv(1024)
+            if not data:
+                return False
+            data += self._received_data
+            try:
+                data = json.loads(data.decode())
+                if data['action'] == 'result':
+                    self._result = {
+                        "input": self._input_parameters,
+                        "output": data['data']
+                    }
+                    self._state.set_done(True)
+                    return True
+                if data['action'] == 'error':
+                    self._error = data['error']
+                    self._state.set_done(True)
+                    return False
+                if data['action'] == 'received':
+                    return False
+            except json.decoder.JSONDecodeError:
+                self._error = 'Invalid JSON received.'
                 self._state.set_done(True)
                 return False
-            if data['action'] == 'received':
-                return False
-        except json.decoder.JSONDecodeError:
-            self._error = 'Invalid JSON received.'
+        except Exception:
             self._state.set_done(True)
-            return False
         return False
 
 
@@ -437,8 +440,10 @@ class Server:
         self.port = port
         self._sock = None
         self._process = None
+        self._client_process = None
         self.running = False
         self._workers = {}
+        self._new_workers = []
         self._parameters = []
         self._assigned = {}
         self._completed = []
@@ -494,9 +499,13 @@ class Server:
             self._logs.info("Server started.", verbose=self._verbose)
 
             self.running = True
-            self._process = Process(target=self._update)
+            self._process = Thread(target=self._update)
             self._process.start()
             self._logs.info("Server process started.", verbose=self._verbose)
+
+            self._client_process = Thread(target=self._update_clients)
+            self._client_process.start()
+
         except ValueError as e:
             self._logs.error(e, verbose=self._verbose)
 
@@ -600,29 +609,27 @@ class Server:
         """
         update Updates the server.
         """
-        self._logs.info("Waiting for connection...", verbose=self._verbose)
-
-        client, address = self._accept()
-
-        self._logs.info("Connection from {}".format(address),
-                        verbose=self._verbose)
         while self.running:
-            if client is not None and address not in self._workers.keys():
+            if len(self._new_workers) > 0:
+                client, address = self._new_workers.pop()
                 self._workers[address] = Worker(client, address)
 
             for key, _ in self._workers.items():
                 if not self._workers[key].is_assigned():
-                    input_p = random.choice(self._parameters)
-                    self._workers[key].assign_task(input_p)
-                    self._assigned[key] = {
-                        "status": "assigned",
-                        "parameters": input_p
-                    }
-                    self._workers[key].run()
-
-                    self._logs.info("Assigned parameters: {} to {}".format(
-                        self._workers[key].get_parameters(), key),
-                        verbose=self._verbose)
+                    try:
+                        # input_p = random.choice(self._parameters)
+                        input_p = self._parameters.pop(0)
+                        self._workers[key].assign_task(input_p)
+                        self._assigned[key] = {
+                            "status": "assigned",
+                            "parameters": input_p
+                        }
+                        self._workers[key].run()
+                        self._logs.info("Assigned parameters: {} to {}".format(
+                            self._workers[key].get_parameters(), key),
+                            verbose=self._verbose)
+                    except IndexError:
+                        continue
 
                 elif (self._workers[key].is_assigned() and not
                       self._workers[key].is_running()):
@@ -652,12 +659,16 @@ class Server:
                         self._logs.output(self._workers[key].get_result(),
                                           verbose=self._verbose)
 
-                        self._parameters.remove(
-                            self._workers[key].get_parameters())
+                        try:
+                            self._parameters.remove(
+                                self._workers[key].get_parameters())
+                        except ValueError:
+                            pass
 
                     self._workers[key].terminate()
 
-            if len(self._completed) == self._to_complete:
+            if len(self._completed) == self._to_complete or len(
+                    self._parameters) == 0:
                 if self._callback is not None:
                     self._logs.info("All tasks completed.",
                                     verbose=self._verbose)
@@ -665,6 +676,21 @@ class Server:
                     self._callback(self._completed)
                 self._logs.info("Stopping server...", verbose=self._verbose)
                 self.stop()
+
+    def _update_clients(self) -> None:
+        """
+        _update_clients Checks for new connections and
+        adds them to a queue of clients in self._new_workers.
+        """
+        while self.running:
+            try:
+                client, address = self._accept()
+                self._logs.info("Connection from {}".format(address),
+                                verbose=self._verbose)
+                if client is not None and address not in self._workers.keys():
+                    self._new_workers.append((client, address))
+            except ConnectionAbortedError:
+                continue
 
     def stop(self) -> list:
         """
@@ -679,6 +705,7 @@ class Server:
             if not self.running:
                 raise ValueError("Server is not running.")
             self.running = False
+            self._sock.close()
             return self._completed
         except ValueError as e:
             self._logs.error(e, verbose=self._verbose)
