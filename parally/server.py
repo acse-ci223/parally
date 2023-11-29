@@ -4,7 +4,7 @@ from datetime import datetime
 import random
 import socket
 import json
-from multiprocessing import Process
+from threading import Thread
 from typing import Tuple
 from colorama import Fore, Style, just_fix_windows_console
 just_fix_windows_console()
@@ -12,47 +12,14 @@ just_fix_windows_console()
 __all__ = ['Server']
 
 
-def freeze(o) -> list:
-    """
-    freezes a nested dictionary, list, tuple or set
-
-    Parameters
-    ----------
-    o : dict, list, tuple, set
-        The object to be frozen
-
-    Returns
-    -------
-    dict, list, tuple, set
-        The frozen object
-    """
-    if isinstance(o, dict):
-        return list(frozenset({k: freeze(v) for k, v in o.items()}.items()))
-    if isinstance(o, (set, tuple, list)):
-        return list(freeze(v) for v in o)
-    return o
-
-
-def make_hash(o) -> int:
-    """
-    makes a hash out of anything that contains only
-    list,dict and hashable types including string and numeric types
-
-    Parameters
-    ----------
-    o : dict, list, tuple, set
-        The object to be hashed
-
-    Returns
-    -------
-    int
-        The hash of the object
-    """
-    return hash(freeze(o))
-
-
 class Logs:
+    """
+    A simple logs class that handles the logs of the server.
+    """
     def __init__(self):
+        """
+        __init__ Initialises the Logs object.
+        """
         self._logs = []
         self.colors = {
             "info": Fore.GREEN,
@@ -64,7 +31,17 @@ class Logs:
             "reset": Style.RESET_ALL
         }
 
-    def info(self, msg, verbose=False):
+    def info(self, msg, verbose=False) -> list:
+        """
+        info Logs an info message.
+
+        Parameters
+        ----------
+        msg : str
+            The message to be logged.
+        verbose : bool
+            Whether to print the message to the console or not.
+        """
         if verbose:
             print("{}{}: {}info-> {}{}".format(
                 self.colors['timestamp'],
@@ -77,8 +54,19 @@ class Logs:
             "type": "info",
             "message": msg
         })
+        return self.get_logs()
 
-    def error(self, msg, verbose=False):
+    def error(self, msg, verbose=False) -> list:
+        """
+        error Logs an error message.
+
+        Parameters
+        ----------
+        msg : str
+            The message to be logged.
+        verbose : bool
+            Whether to print the message to the console or not.
+        """
         if verbose:
             print("{}{}: {}error-> {}{}".format(
                 self.colors['timestamp'],
@@ -91,8 +79,19 @@ class Logs:
             "type": "error",
             "message": msg
         })
+        return self.get_logs()
 
-    def warning(self, msg, verbose=False):
+    def warning(self, msg, verbose=False) -> list:
+        """
+        warning Logs a warning message.
+
+        Parameters
+        ----------
+        msg : str
+            The message to be logged.
+        verbose : bool
+            Whether to print the message to the console or not.
+        """
         if verbose:
             print("{}{}: {}warning-> {}{}".format(
                 self.colors['timestamp'],
@@ -105,8 +104,19 @@ class Logs:
             "type": "warning",
             "message": msg
         })
+        return self.get_logs()
 
-    def debug(self, msg, verbose=False):
+    def debug(self, msg, verbose=False) -> list:
+        """
+        debug Logs a debug message.
+
+        Parameters
+        ----------
+        msg : str
+            The message to be logged.
+        verbose : bool
+            Whether to print the message to the console or not.
+        """
         if verbose:
             print("{}{}: {}debug-> {}{}".format(
                 self.colors['timestamp'],
@@ -119,25 +129,49 @@ class Logs:
             "type": "debug",
             "message": msg
         })
+        return self.get_logs()
 
-    def output(self, msg, verbose=False):
+    def output(self, msg, verbose=False) -> list:
+        """
+        output Logs an output message.
+
+        Parameters
+        ----------
+        msg : str
+            The message to be logged.
+        verbose : bool
+            Whether to print the message to the console or not.
+        """
         if verbose:
-            print("{}{}: {}output-> {}{}".format(
+            print("{}{}: {}output-> {}{}{}".format(
                 self.colors['timestamp'],
                 datetime.now().strftime("%H:%M:%S"),
                 self.colors['debug'],
                 self.colors['output'],
-                msg))
+                json.dumps(msg, indent=2),
+                self.colors['reset']))
         self._logs.append({
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "type": "output",
             "message": msg
         })
+        return self.get_logs()
 
-    def get_logs(self):
+    def get_logs(self) -> list:
+        """
+        get_logs Returns the logs.
+
+        Returns
+        -------
+        list
+            The logs.
+        """
         return self._logs
 
-    def clear_logs(self):
+    def clear_logs(self) -> None:
+        """
+        clear_logs Clears the logs.
+        """
         self._logs = []
 
 
@@ -358,29 +392,32 @@ class Worker:
         """
         check_status Checks the status of the worker.
         """
-        data = self._socket[0].recv(1024)
-        if not data:
-            return False
-        data += self._received_data
         try:
-            data = json.loads(data.decode())
-            if data['action'] == 'result':
-                self._result = {
-                    "input": self._input_parameters,
-                    "result": data['data']
-                }
-                self._state.set_done(True)
-                return True
-            if data['action'] == 'error':
-                self._error = data['error']
+            data = self._socket[0].recv(1024)
+            if not data:
+                return False
+            data += self._received_data
+            try:
+                data = json.loads(data.decode())
+                if data['action'] == 'result':
+                    self._result = {
+                        "input": self._input_parameters,
+                        "output": data['data']
+                    }
+                    self._state.set_done(True)
+                    return True
+                if data['action'] == 'error':
+                    self._error = data['error']
+                    self._state.set_done(True)
+                    return False
+                if data['action'] == 'received':
+                    return False
+            except json.decoder.JSONDecodeError:
+                self._error = 'Invalid JSON received.'
                 self._state.set_done(True)
                 return False
-            if data['action'] == 'received':
-                return False
-        except json.decoder.JSONDecodeError:
-            self._error = 'Invalid JSON received.'
+        except Exception:
             self._state.set_done(True)
-            return False
         return False
 
 
@@ -403,8 +440,10 @@ class Server:
         self.port = port
         self._sock = None
         self._process = None
+        self._client_process = None
         self.running = False
         self._workers = {}
+        self._new_workers = []
         self._parameters = []
         self._assigned = {}
         self._completed = []
@@ -424,19 +463,25 @@ class Server:
                     "No parameters to bind. Make sure you run \
                         Server.bind_parameters() first.")
             if self._callback is None:
+                self.on_completed(self._default_callback)
                 raise ValueError(
-                    "No callback function initialized. Make sure you run \
-                        Server.on_completed(my_callback_function) first.")
+                    "No callback function initialized. Default callback used.")
             if self._callback_error is None:
+                self.on_error(self._default_callback)
                 raise ValueError(
-                    "No error function initialized. Make sure you run \
-                        Server.on_error(my_error_function) first.")
+                    "No error function initialized. Default callback used.")
             if self.running:
                 raise ValueError("Server is already running.")
             if self.port < 1024 or self.port > 65535:
-                raise ValueError("Port must be between 1024 and 65535.")
-            if self.host == '':
+                self.port = 5000
+                raise ValueError("Port must be between 1024 and 65535.\
+                                 Default used: 5000.")
+
+            socks = ['', 0, None]
+            if self.host in socks:
                 self.host = 'localhost'
+                raise ValueError("Host must be a valid address.\
+                                    Default used: localhost.")
 
             self._logs.info("Starting server on {}:{}".format(
                 self.host, self.port), verbose=self._verbose)
@@ -444,17 +489,47 @@ class Server:
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            self._sock.bind((self.host, self.port))
+            try:
+                self._sock.bind((self.host, self.port))
+            except Exception as e:
+                raise ValueError("Cannot bind to {}:{}. {}".format(
+                    self.host, self.port, e))
             self._sock.listen()
 
             self._logs.info("Server started.", verbose=self._verbose)
 
             self.running = True
-            self._process = Process(target=self._update)
+            self._process = Thread(target=self._update)
             self._process.start()
             self._logs.info("Server process started.", verbose=self._verbose)
+
+            self._client_process = Thread(target=self._update_clients)
+            self._client_process.start()
+
         except ValueError as e:
             self._logs.error(e, verbose=self._verbose)
+
+    def set_verbose(self, verbose) -> None:
+        """
+        set_verbose Sets the verbose state of the server.
+
+        Parameters
+        ----------
+        verbose : bool
+            The verbose state of the server.
+        """
+        self._verbose = verbose
+
+    def get_logs(self) -> list:
+        """
+        get_logs Returns the logs of the server.
+
+        Returns
+        -------
+        list
+            The logs of the server.
+        """
+        return self._logs.get_logs()
 
     def _accept(self) -> Tuple[socket.socket, tuple]:
         """
@@ -534,29 +609,27 @@ class Server:
         """
         update Updates the server.
         """
-        self._logs.info("Waiting for connection...", verbose=self._verbose)
-
-        client, address = self._accept()
-
-        self._logs.info("Connection from {}".format(address),
-                        verbose=self._verbose)
         while self.running:
-            if client is not None and address not in self._workers.keys():
+            if len(self._new_workers) > 0:
+                client, address = self._new_workers.pop()
                 self._workers[address] = Worker(client, address)
 
             for key, _ in self._workers.items():
                 if not self._workers[key].is_assigned():
-                    input_p = random.choice(self._parameters)
-                    self._workers[key].assign_task(input_p)
-                    self._assigned[key] = {
-                        "status": "assigned",
-                        "parameters": input_p
-                    }
-                    self._workers[key].run()
-
-                    self._logs.info("Assigned parameters: {} to {}".format(
-                        self._workers[key].get_parameters(), key),
-                        verbose=self._verbose)
+                    try:
+                        # input_p = random.choice(self._parameters)
+                        input_p = self._parameters.pop(0)
+                        self._workers[key].assign_task(input_p)
+                        self._assigned[key] = {
+                            "status": "assigned",
+                            "parameters": input_p
+                        }
+                        self._workers[key].run()
+                        self._logs.info("Assigned parameters: {} to {}".format(
+                            self._workers[key].get_parameters(), key),
+                            verbose=self._verbose)
+                    except IndexError:
+                        continue
 
                 elif (self._workers[key].is_assigned() and not
                       self._workers[key].is_running()):
@@ -586,12 +659,16 @@ class Server:
                         self._logs.output(self._workers[key].get_result(),
                                           verbose=self._verbose)
 
-                        self._parameters.remove(
-                            self._workers[key].get_parameters())
+                        try:
+                            self._parameters.remove(
+                                self._workers[key].get_parameters())
+                        except ValueError:
+                            pass
 
                     self._workers[key].terminate()
 
-            if len(self._completed) == self._to_complete:
+            if len(self._completed) == self._to_complete or len(
+                    self._parameters) == 0:
                 if self._callback is not None:
                     self._logs.info("All tasks completed.",
                                     verbose=self._verbose)
@@ -599,6 +676,21 @@ class Server:
                     self._callback(self._completed)
                 self._logs.info("Stopping server...", verbose=self._verbose)
                 self.stop()
+
+    def _update_clients(self) -> None:
+        """
+        _update_clients Checks for new connections and
+        adds them to a queue of clients in self._new_workers.
+        """
+        while self.running:
+            try:
+                client, address = self._accept()
+                self._logs.info("Connection from {}".format(address),
+                                verbose=self._verbose)
+                if client is not None and address not in self._workers.keys():
+                    self._new_workers.append((client, address))
+            except ConnectionAbortedError:
+                continue
 
     def stop(self) -> list:
         """
@@ -613,7 +705,19 @@ class Server:
             if not self.running:
                 raise ValueError("Server is not running.")
             self.running = False
+            self._sock.close()
             return self._completed
         except ValueError as e:
             self._logs.error(e, verbose=self._verbose)
         return []
+
+    def _default_callback(self, results) -> None:
+        """
+        default_callback A default callback function.
+
+        Parameters
+        ----------
+        results : list
+            A list of results.
+        """
+        print(results)
