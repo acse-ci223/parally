@@ -87,8 +87,8 @@ class Client:
             self._logs.info(f"Received data: {data}", verbose=self._verbose)
             if data['action'] == 'run':
                 self._input_parameters = data['parameters']
-                self._logs.info("Running function with parameters {}".format(
-                    self._input_parameters),
+                self._logs.info("Running function with parameters {}"
+                                .format(self._input_parameters),
                                 verbose=self._verbose)
                 try:
                     result = self.function(self._input_parameters)
